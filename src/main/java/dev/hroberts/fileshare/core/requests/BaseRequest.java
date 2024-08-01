@@ -24,6 +24,7 @@ public abstract class BaseRequest {
     }
 
     protected JSONObject sendRequest() throws FailedToInitiateUploadException {
+        Logger.info("sending http " + request.getMethod());
         tries++;
         try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
             var responseString = httpClient.execute(request, (response -> new String(response.getEntity().getContent().readAllBytes())));

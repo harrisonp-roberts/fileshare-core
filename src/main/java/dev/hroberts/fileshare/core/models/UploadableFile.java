@@ -2,10 +2,12 @@ package dev.hroberts.fileshare.core.models;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.HashMap;
 
 public class UploadableFile {
     private Path filePath;
     private long size;
+    private HashMap<String, String> chunkMap;
 
     public UploadableFile(Path filePath) {
        this.filePath = filePath;

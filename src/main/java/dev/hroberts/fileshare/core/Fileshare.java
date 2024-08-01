@@ -1,6 +1,7 @@
 package dev.hroberts.fileshare.core;
 
 import dev.hroberts.fileshare.core.exceptions.FailedToInitiateUploadException;
+import dev.hroberts.fileshare.core.models.FileOptions;
 import dev.hroberts.fileshare.core.models.UploadableFile;
 import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
 import org.tinylog.Logger;
@@ -9,23 +10,31 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 public class Fileshare {
-    private FileshareConfig config;
+    private UploadManager uploadManager;
+
     public Fileshare(FileshareConfig config) {
-        this.config = config;
+        Logger.info("initializing fileshare core");
+        this.uploadManager = new UploadManager(config);
     }
 
-    //todo return id
-    public UUID shareFile(Path filepath) throws FailedToInitiateUploadException {
-        Logger.info("Sharing file", filepath);
-        var file = new UploadableFile(filepath);
-        return initiateUpload(file);
+    public void getFile() {
+        Logger.error("not yet implemented");
     }
 
-    private UUID initiateUpload(UploadableFile file) throws FailedToInitiateUploadException {
-        var request = new InititiateUploadRequest(config, file.getFilePath().toFile());
-        //todo fix the file path input
-        return request.initiate();
+    public UUID putFile(Path filePath) throws FailedToInitiateUploadException {
+        Logger.info("putting file " + filePath.getFileName() + " with default options");
+        var options = FileOptions.getDefaultOptions();
+        return putFile(filePath, options);
+
     }
+
+    public UUID putFile(Path filePath, FileOptions fileShareOptions) throws FailedToInitiateUploadException {
+        Logger.info("putting file " + filePath.getFileName());
+        var file = new UploadableFile(filePath);
+        return uploadManager.doUpload(file);
+    }
+
+
 
 
 }
