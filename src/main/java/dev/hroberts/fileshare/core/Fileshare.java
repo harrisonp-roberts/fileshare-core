@@ -1,9 +1,8 @@
 package dev.hroberts.fileshare.core;
 
-import dev.hroberts.fileshare.core.exceptions.FailedToInitiateUploadException;
+import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import dev.hroberts.fileshare.core.models.FileOptions;
 import dev.hroberts.fileshare.core.models.UploadableFile;
-import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
 import org.tinylog.Logger;
 
 import java.nio.file.Path;
@@ -33,8 +32,4 @@ public class Fileshare {
         var file = new UploadableFile(filePath);
         return uploadManager.doUpload(file);
     }
-
-
-
-
 }

@@ -1,6 +1,6 @@
 package dev.hroberts.fileshare.core;
 
-import dev.hroberts.fileshare.core.exceptions.FailedToInitiateUploadException;
+import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import org.tinylog.Logger;
 
 import java.nio.file.Path;

@@ -1,42 +1,61 @@
 package dev.hroberts.fileshare.core.requests;
 
+import com.google.gson.Gson;
 import dev.hroberts.fileshare.core.FileshareConfig;
-import dev.hroberts.fileshare.core.exceptions.FailedToInitiateUploadException;
+import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpEntity;
-import org.json.JSONObject;
 import org.tinylog.Logger;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class BaseRequest {
+    protected Gson gson = new Gson();
     protected int tries = 0;
     protected String URL;
     protected boolean successStatus;
-    protected ClassicHttpRequest request;
+    protected Integer responseCode = null;
+    protected HttpUriRequest request;
     protected HttpEntity body;
     protected FileshareConfig config;
 
     public BaseRequest(FileshareConfig config) {
         this.config = config;
+        URL = config.getBaseUri() + getRequestPath();
+        request = getRequest();
+        buildHeaders();
+        buildBody();
     }
 
-    protected JSONObject sendRequest() throws FailedToInitiateUploadException {
+    protected String sendRequest() throws FailedToInitiateUploadException {
         Logger.info("sending http " + request.getMethod());
-        tries++;
+
         try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            var responseString = httpClient.execute(request, (response -> new String(response.getEntity().getContent().readAllBytes())));
+            final var responseCode = new AtomicInteger();
+            var response = httpClient.execute(request, (httpResponse -> {
+                responseCode.set(httpResponse.getCode());
+                return new String(httpResponse.getEntity().getContent().readAllBytes());
+            })); ;
             successStatus = true;
-            return new JSONObject(responseString);
+            this.responseCode = responseCode.get();
+
+            return response;
         } catch (IOException e) {
+            Logger.error("error sending request");
+            Logger.error(e);
             successStatus = false;
-            System.err.println(e.getMessage());
             throw new FailedToInitiateUploadException();
+        } finally {
+            tries++;
         }
     }
 
+    protected abstract String getRequestPath();
+    protected abstract HttpUriRequest getRequest();
     protected abstract void buildHeaders();
     protected abstract void buildBody();
 }

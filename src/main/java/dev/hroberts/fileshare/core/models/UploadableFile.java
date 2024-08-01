@@ -1,16 +1,37 @@
 package dev.hroberts.fileshare.core.models;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Path;
-import java.util.HashMap;
 
 public class UploadableFile {
     private Path filePath;
+    private String fileName;
     private long size;
-    private HashMap<String, String> chunkMap;
+    private int chunkSize;
+    private int numChunks;
 
     public UploadableFile(Path filePath) {
-       this.filePath = filePath;
+        chunkSize = 1024 * 1024 * 10;
+        this.filePath = filePath;
+        this.fileName = filePath.getFileName().toString();
+        this.size = filePath.toFile().length();
+        this.numChunks = (int) (size / chunkSize);
+    }
+
+    public byte[] getChunk(int index) throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(filePath.toFile(), "r")) {
+            file.seek((long) index * chunkSize);
+            byte[] buffer = new byte[chunkSize];
+            int bytesRead = file.read(buffer);
+            if (bytesRead < chunkSize) {
+                byte[] smallerBuffer = new byte[bytesRead];
+                System.arraycopy(buffer, 0, smallerBuffer, 0, bytesRead);
+                buffer = smallerBuffer;
+            }
+            return buffer;
+        }
     }
 
     public UploadableFile(String filePath) {
@@ -23,5 +44,17 @@ public class UploadableFile {
 
     public Path getFilePath() {
         return filePath;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public int getNumChunks() {
+        return numChunks;
     }
 }
