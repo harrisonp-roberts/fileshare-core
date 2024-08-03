@@ -6,8 +6,10 @@ import dev.hroberts.fileshare.core.models.UploadableFile;
 import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
 import org.tinylog.Logger;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 class UploadManager {
     private FileshareConfig config;
@@ -27,12 +29,19 @@ class UploadManager {
     }
 
     private void uploadChunks(UUID uploadId, UploadableFile file) {
-        //assume 10 parallel chunks of 1024 * 1024 * 10 (10MB)
-        Thread.Builder builder = Thread.ofVirtual().name("worker-", 0);
-        int parallelUploads = 10;
-        var runnables = new ArrayList<Runnable>();
+        var virtualThreadFactory = Thread.ofVirtual().factory();
+        try(var executor = Executors.newFixedThreadPool(10, virtualThreadFactory)) {
+            var futures = IntStream.range(0, file.getNumChunks())
+                    .mapToObj(i -> {
+                        try {
+                            var chunk = file.getChunk(i);
+                            new UploadPartRequest()
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
 
-        //while upload is not complete
 
     }
 
@@ -43,7 +52,8 @@ class UploadManager {
     private UUID initiateUpload(UploadableFile file) throws FailedToInitiateUploadException {
         Logger.info("initiating upload");
         var request = new InititiateUploadRequest(config, file);
-        return request.initiate();
+        var responseDto = request.execute();
+        return responseDto.id;
     }
 
 

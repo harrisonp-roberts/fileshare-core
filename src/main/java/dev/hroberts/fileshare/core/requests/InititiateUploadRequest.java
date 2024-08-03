@@ -13,7 +13,7 @@ import org.tinylog.Logger;
 
 import java.util.UUID;
 
-public class InititiateUploadRequest extends BaseRequest {
+public class InititiateUploadRequest extends BaseRequest <InitiateMultipartResponseDto> {
     private final String fileName;
     private final long size;
 
@@ -23,19 +23,13 @@ public class InititiateUploadRequest extends BaseRequest {
         size = uploadableFile.getSize();
     }
 
-    public UUID initiate() throws FailedToInitiateUploadException {
-        Logger.info("initiating file upload");
-        var responseString = sendRequest();
-        var response = gson.fromJson(responseString, InitiateMultipartResponseDto.class);
-
-        if(response != null) {
-            return response.id;
-        } else {
-            throw new FailedToInitiateUploadException();
-        }
+    @Override
+    public InitiateMultipartResponseDto execute() throws FailedToInitiateUploadException {
+        return execute(InitiateMultipartResponseDto.class);
     }
 
-    protected void buildBody() {
+    @Override
+    protected void buildBody(HttpUriRequest request) {
         var dto = new InitiateMultipartDto();
         dto.fileName = fileName;
         dto.size = size;
@@ -49,16 +43,11 @@ public class InititiateUploadRequest extends BaseRequest {
     }
 
     @Override
-    protected String getRequestPath() {
-        return "/files/initiate-multipart";
-    }
-
-    @Override
     protected HttpUriRequest getRequest() {
-        return new HttpPost(URL);
+        return new HttpPost("/files/initiate-multipart");
     }
 
-    protected void buildHeaders() {
+    protected void buildHeaders(HttpUriRequest request) {
         request.setHeader("Accept", "application/json");
         request.setHeader("Content-type", "application/json");
     }
