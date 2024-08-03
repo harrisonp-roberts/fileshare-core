@@ -9,9 +9,7 @@ import dev.hroberts.fileshare.core.models.UploadableFile;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.tinylog.Logger;
-
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class InititiateUploadRequest extends BaseRequest <InitiateMultipartResponseDto> {
     private final String fileName;
@@ -24,7 +22,7 @@ public class InititiateUploadRequest extends BaseRequest <InitiateMultipartRespo
     }
 
     @Override
-    public InitiateMultipartResponseDto execute() throws FailedToInitiateUploadException {
+    public CompletableFuture<InitiateMultipartResponseDto> execute() throws FailedToInitiateUploadException {
         return execute(InitiateMultipartResponseDto.class);
     }
 
@@ -44,7 +42,7 @@ public class InititiateUploadRequest extends BaseRequest <InitiateMultipartRespo
 
     @Override
     protected HttpUriRequest getRequest() {
-        return new HttpPost("/files/initiate-multipart");
+        return new HttpPost(URL + "/files/initiate-multipart");
     }
 
     protected void buildHeaders(HttpUriRequest request) {

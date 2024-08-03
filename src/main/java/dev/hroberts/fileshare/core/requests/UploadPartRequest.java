@@ -10,6 +10,7 @@ import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.core5.http.ContentType;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
     private final UUID uploadId;
@@ -24,13 +25,13 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
     }
 
     @Override
-    public NoContentResponseDto execute() throws FailedToInitiateUploadException {
+    public CompletableFuture<NoContentResponseDto> execute() {
         return execute(NoContentResponseDto.class);
     }
 
     @Override
     protected HttpUriRequest getRequest() {
-        return new HttpPut("/files/upload/" + uploadId);
+        return new HttpPut(URL + "/files/upload/" + uploadId);
     }
 
     @Override

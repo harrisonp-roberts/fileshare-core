@@ -1,15 +1,18 @@
 package dev.hroberts.fileshare.core;
 
-import dev.hroberts.fileshare.core.requests.UploadPartRequest;
-import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
+import dev.hroberts.fileshare.core.dtos.InitiateMultipartResponseDto;
+import dev.hroberts.fileshare.core.dtos.NoContentResponseDto;
 import dev.hroberts.fileshare.core.models.UploadableFile;
 import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
+import dev.hroberts.fileshare.core.requests.UploadPartRequest;
+import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import org.tinylog.Logger;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
 
 class UploadManager {
     private FileshareConfig config;
@@ -23,38 +26,55 @@ class UploadManager {
         var uploadId = initiateUpload(file);
         Logger.info("initiated request with upload ID " + uploadId);
 
-
+        uploadChunks(uploadId, file);
+        Logger.info("uploaded chunks");
+        
         //upload them
-        return null;
+        return uploadId;
     }
 
     private void uploadChunks(UUID uploadId, UploadableFile file) {
+        Logger.info("creating thread pool for chunks");
         var virtualThreadFactory = Thread.ofVirtual().factory();
-        try(var executor = Executors.newFixedThreadPool(10, virtualThreadFactory)) {
-            var futures = IntStream.range(0, file.getNumChunks())
-                    .mapToObj(i -> {
-                        try {
-                            var chunk = file.getChunk(i);
-                            new UploadPartRequest()
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+        try (var executor = Executors.newFixedThreadPool(config.getParallelUploads(), virtualThreadFactory)) {
+            var completionService = new ExecutorCompletionService<NoContentResponseDto>(executor);
+            int activeTasks = 0;
+
+            for (int i = 0; i < file.getNumChunks(); i++) {
+                    Logger.info("creating upload chunk request " + i);
+                    var chunk = file.getChunk(i);
+                    var request = new UploadPartRequest(config, i, uploadId, chunk);
+
+                    if(activeTasks == config.getParallelUploads()) {
+                        Logger.info("removing completed upload chunk request from threadpool");
+                        completionService.take();
+                        activeTasks--;
+                    }
+
+                    Logger.info("pooling upload chunk request " + i);
+                    completionService.submit(request::execute, null);
+                    activeTasks++;
+            }
+
+            while(activeTasks > 0) {
+                Logger.info("removing completed upload chunk request from threadpool");
+                completionService.take();
+                activeTasks--;
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
-
-
-    }
-
-    private void uploadChunk(UUID uploadId, byte[] payload) {
-        //
     }
 
     private UUID initiateUpload(UploadableFile file) throws FailedToInitiateUploadException {
         Logger.info("initiating upload");
         var request = new InititiateUploadRequest(config, file);
-        var responseDto = request.execute();
-        return responseDto.id;
+
+        try {
+            var responseDto = request.execute().get();
+            return responseDto.id;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new FailedToInitiateUploadException();
+        }
     }
-
-
 }

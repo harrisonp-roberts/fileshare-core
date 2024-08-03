@@ -4,6 +4,7 @@ public class FileshareConfig {
     private String baseUri;
     private long chunkSize;
     private int parallelUploads;
+    private int maxRetries = 5;
 
     public FileshareConfig(String baseUri) {
         this.baseUri = baseUri;
@@ -23,5 +24,13 @@ public class FileshareConfig {
 
     public long getChunkSize() {
         return chunkSize;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public int getParallelUploads() {
+        return parallelUploads;
     }
 }

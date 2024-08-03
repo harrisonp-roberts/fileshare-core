@@ -17,7 +17,8 @@ public class UploadableFile {
         this.filePath = filePath;
         this.fileName = filePath.getFileName().toString();
         this.size = filePath.toFile().length();
-        this.numChunks = (int) (size / chunkSize);
+
+        this.numChunks = (int) Math.ceilDiv(size, chunkSize);
     }
 
     public byte[] getChunk(int index) throws IOException {
