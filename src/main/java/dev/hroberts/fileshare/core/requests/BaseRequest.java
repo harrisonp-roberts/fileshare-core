@@ -12,8 +12,10 @@ import org.tinylog.Logger;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public abstract class BaseRequest <T> {
+public abstract class BaseRequest<T> {
     protected Gson gson = new Gson();
     protected String URL;
     protected HttpUriRequest request;
@@ -26,12 +28,11 @@ public abstract class BaseRequest <T> {
     }
 
     /**
-     *
      * @return T where T is the dto returned by the API
      */
-protected CompletableFuture<T> execute(Class<T> clazz) {
+    protected CompletableFuture<T> execute(Class<T> clazz, ExecutorService es) {
 
-    return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             //todo if response errors, retry x times
             try {
                 var responseString = sendRequest();
@@ -40,11 +41,18 @@ protected CompletableFuture<T> execute(Class<T> clazz) {
                 Logger.error("failed to execute request");
                 throw new CompletionException(e);
             }
-        });
+        }, es);
+    }
+
+    protected CompletableFuture<T> execute(Class<T> clazz) {
+        return execute(clazz, Executors.newFixedThreadPool(1));
     }
 
     protected String sendRequest() throws IOException {
         var request = getRequest();
+        buildHeaders(request);
+        buildBody(request);
+
         Logger.info("sending http " + request.getMethod());
 
         //todo if request status code is not success, throw error.

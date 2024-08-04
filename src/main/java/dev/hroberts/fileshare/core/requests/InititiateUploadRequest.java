@@ -22,14 +22,14 @@ public class InititiateUploadRequest extends BaseRequest <InitiateMultipartRespo
     }
 
     @Override
-    public CompletableFuture<InitiateMultipartResponseDto> execute() throws FailedToInitiateUploadException {
+    public CompletableFuture<InitiateMultipartResponseDto> execute() {
         return execute(InitiateMultipartResponseDto.class);
     }
 
     @Override
     protected void buildBody(HttpUriRequest request) {
         var dto = new InitiateMultipartDto();
-        dto.fileName = fileName;
+        dto.name = fileName;
         dto.size = size;
         dto.downloadLimit = -1;
 

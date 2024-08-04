@@ -24,7 +24,6 @@ public class Fileshare {
         Logger.info("putting file " + filePath.getFileName() + " with default options");
         var options = FileOptions.getDefaultOptions();
         return putFile(filePath, options);
-
     }
 
     public UUID putFile(Path filePath, FileOptions fileShareOptions) throws FailedToInitiateUploadException {

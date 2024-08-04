@@ -22,7 +22,7 @@ public class Main {
         var core = new Fileshare(config);
         try {
             Logger.info("Starting test upload");
-            core.putFile(Path.of("/home/hroberts/dump.rdb"));
+            var response = core.putFile(Path.of("/home/hroberts/dump.rdb"));
         } catch (FailedToInitiateUploadException e) {
             throw new RuntimeException(e);
         }

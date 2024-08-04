@@ -4,6 +4,7 @@ import dev.hroberts.fileshare.core.FileshareConfig;
 import dev.hroberts.fileshare.core.dtos.NoContentResponseDto;
 import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
@@ -11,6 +12,7 @@ import org.apache.hc.core5.http.ContentType;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
     private final UUID uploadId;
@@ -24,6 +26,10 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
         this.position = position;
     }
 
+    public CompletableFuture<NoContentResponseDto> execute(ExecutorService es) {
+        return execute(NoContentResponseDto.class, es);
+    }
+
     @Override
     public CompletableFuture<NoContentResponseDto> execute() {
         return execute(NoContentResponseDto.class);
@@ -31,7 +37,7 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
 
     @Override
     protected HttpUriRequest getRequest() {
-        return new HttpPut(URL + "/files/upload/" + uploadId);
+        return new HttpPost(URL + "/files/upload/" + uploadId);
     }
 
     @Override

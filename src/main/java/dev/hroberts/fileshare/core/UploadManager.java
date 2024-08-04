@@ -1,8 +1,8 @@
 package dev.hroberts.fileshare.core;
 
-import dev.hroberts.fileshare.core.dtos.InitiateMultipartResponseDto;
 import dev.hroberts.fileshare.core.dtos.NoContentResponseDto;
 import dev.hroberts.fileshare.core.models.UploadableFile;
+import dev.hroberts.fileshare.core.requests.CompleteUploadRequest;
 import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
 import dev.hroberts.fileshare.core.requests.UploadPartRequest;
 import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
 
 class UploadManager {
-    private FileshareConfig config;
+    private final FileshareConfig config;
 
     public UploadManager(FileshareConfig config) {
         Logger.info("creating upload manager");
@@ -28,9 +28,18 @@ class UploadManager {
 
         uploadChunks(uploadId, file);
         Logger.info("uploaded chunks");
-        
-        //upload them
+
+        completeUpload(uploadId);
+        Logger.info("upload completed");
+
         return uploadId;
+    }
+
+    private void completeUpload(UUID uploadId) {
+        Logger.info("completing upload");
+
+        var completeUploadRequest = new CompleteUploadRequest(config, uploadId);
+        completeUploadRequest.execute();
     }
 
     private void uploadChunks(UUID uploadId, UploadableFile file) {
@@ -52,8 +61,10 @@ class UploadManager {
                     }
 
                     Logger.info("pooling upload chunk request " + i);
-                    completionService.submit(request::execute, null);
+                    completionService.submit(() -> request.execute(executor), null);
                     activeTasks++;
+
+
             }
 
             while(activeTasks > 0) {
@@ -61,6 +72,7 @@ class UploadManager {
                 completionService.take();
                 activeTasks--;
             }
+
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
