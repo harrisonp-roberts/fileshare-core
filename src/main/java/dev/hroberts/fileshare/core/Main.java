@@ -18,11 +18,12 @@ public class Main {
      *  d. Will it be easy to add in the hashing?
      */
     public static void main(String[] args) {
-        var config = new FileshareConfig("https://files.hroberts.dev");
+    var config = new FileshareConfig("http://localhost:8080");
         var core = new Fileshare(config);
         try {
             Logger.info("Starting test upload");
-            var response = core.putFile(Path.of("/home/hroberts/dump.rdb"));
+            var response = core.putFile(Path.of("/home/hroberts/Desktop/hp1.mkv"));
+            System.out.println("https://files.hroberts.dev/download/" + response);
         } catch (FailedToInitiateUploadException e) {
             throw new RuntimeException(e);
         }

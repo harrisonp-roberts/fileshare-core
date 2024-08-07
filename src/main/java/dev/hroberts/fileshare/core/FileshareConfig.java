@@ -10,7 +10,7 @@ public class FileshareConfig {
         this.baseUri = baseUri;
         //Default chunk size 50M
         this.chunkSize = 50 * 1024 * 1024;
-        this.parallelUploads = 5;
+        this.parallelUploads = 10;
     }
 
     public FileshareConfig(String baseUri, long chunkSize) {

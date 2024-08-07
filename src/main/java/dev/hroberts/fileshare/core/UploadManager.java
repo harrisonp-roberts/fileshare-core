@@ -9,10 +9,10 @@ import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadExc
 import org.tinylog.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
 
 class UploadManager {
     private final FileshareConfig config;
@@ -39,43 +39,64 @@ class UploadManager {
         Logger.info("completing upload");
 
         var completeUploadRequest = new CompleteUploadRequest(config, uploadId);
-        completeUploadRequest.execute();
+                completeUploadRequest.execute().join();
     }
 
     private void uploadChunks(UUID uploadId, UploadableFile file) {
-        Logger.info("creating thread pool for chunks");
-        var virtualThreadFactory = Thread.ofVirtual().factory();
-        try (var executor = Executors.newFixedThreadPool(config.getParallelUploads(), virtualThreadFactory)) {
-            var completionService = new ExecutorCompletionService<NoContentResponseDto>(executor);
-            int activeTasks = 0;
+        try {
+            var tasks = new ArrayList<CompletableFuture<NoContentResponseDto>>();
 
             for (int i = 0; i < file.getNumChunks(); i++) {
-                    Logger.info("creating upload chunk request " + i);
-                    var chunk = file.getChunk(i);
-                    var request = new UploadPartRequest(config, i, uploadId, chunk);
+                var chunk = file.getChunk(i);
+                var request = new UploadPartRequest(config, i, uploadId, chunk);
 
-                    if(activeTasks == config.getParallelUploads()) {
-                        Logger.info("removing completed upload chunk request from threadpool");
-                        completionService.take();
-                        activeTasks--;
-                    }
+                System.out.println("Adding task for chunk " + i);
+                tasks.add(request.execute());
+                System.out.println("Adding task for chunk " + i + " completed");
 
-                    Logger.info("pooling upload chunk request " + i);
-                    completionService.submit(() -> request.execute(executor), null);
-                    activeTasks++;
-
-
+                while(tasks.size() >= config.getParallelUploads()) {
+                    //todo this probably won't handle errors
+                    tasks.stream().filter(CompletableFuture::isDone).forEach(CompletableFuture::join);
+                    tasks.removeIf(CompletableFuture::isDone);
+                }
             }
 
-            while(activeTasks > 0) {
-                Logger.info("removing completed upload chunk request from threadpool");
-                completionService.take();
-                activeTasks--;
-            }
-
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            tasks.forEach(CompletableFuture::join);
+        } catch (IOException ex) {
+            Logger.error("e");
+            throw new RuntimeException(ex);
         }
+
+
+//        var virtualThreadFactory = Thread.ofVirtual().factory();
+//        try (var executor = Executors.newFixedThreadPool(config.getParallelUploads(), virtualThreadFactory)) {
+//            var completionService = new ExecutorCompletionService<NoContentResponseDto>(executor);
+//            int activeTasks = 0;
+//
+//            for (int i = 0; i < file.getNumChunks(); i++) {
+//                Logger.info("creating upload chunk request " + i);
+//                var chunk = file.getChunk(i);
+//                var request = new UploadPartRequest(config, i, uploadId, chunk);
+//
+//                if (activeTasks == config.getParallelUploads()) {
+//                    Logger.info("removing completed upload chunk request from threadpool");
+//                    completionService.take();
+//                    activeTasks--;
+//                }
+//
+//                Logger.info("pooling upload chunk request " + i);
+//                completionService.submit(() -> request.execute(executor).join(), null);
+//                activeTasks++;
+//            }
+//
+//            while (activeTasks > 0) {
+//                Logger.info("removing completed upload chunk request from threadpool");
+//                completionService.take();
+//                activeTasks--;
+//            }
+//        } catch (IOException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     private UUID initiateUpload(UploadableFile file) throws FailedToInitiateUploadException {

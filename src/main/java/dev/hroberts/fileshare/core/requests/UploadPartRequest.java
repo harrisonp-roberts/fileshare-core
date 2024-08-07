@@ -12,7 +12,6 @@ import org.apache.hc.core5.http.ContentType;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
     private final UUID uploadId;
@@ -24,10 +23,6 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
         this.uploadId = uploadId;
         this.payload = payload;
         this.position = position;
-    }
-
-    public CompletableFuture<NoContentResponseDto> execute(ExecutorService es) {
-        return execute(NoContentResponseDto.class, es);
     }
 
     @Override

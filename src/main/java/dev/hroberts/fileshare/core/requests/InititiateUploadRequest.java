@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import dev.hroberts.fileshare.core.FileshareConfig;
 import dev.hroberts.fileshare.core.dtos.InitiateMultipartDto;
 import dev.hroberts.fileshare.core.dtos.InitiateMultipartResponseDto;
-import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import dev.hroberts.fileshare.core.models.UploadableFile;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.core5.http.io.entity.StringEntity;

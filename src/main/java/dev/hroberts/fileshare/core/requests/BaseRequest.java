@@ -30,7 +30,7 @@ public abstract class BaseRequest<T> {
     /**
      * @return T where T is the dto returned by the API
      */
-    protected CompletableFuture<T> execute(Class<T> clazz, ExecutorService es) {
+    protected CompletableFuture<T> execute(Class<T> clazz) {
 
         return CompletableFuture.supplyAsync(() -> {
             //todo if response errors, retry x times
@@ -41,11 +41,7 @@ public abstract class BaseRequest<T> {
                 Logger.error("failed to execute request");
                 throw new CompletionException(e);
             }
-        }, es);
-    }
-
-    protected CompletableFuture<T> execute(Class<T> clazz) {
-        return execute(clazz, Executors.newFixedThreadPool(1));
+        });
     }
 
     protected String sendRequest() throws IOException {
