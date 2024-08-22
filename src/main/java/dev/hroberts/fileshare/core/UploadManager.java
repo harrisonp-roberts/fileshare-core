@@ -50,9 +50,7 @@ class UploadManager {
                 var chunk = file.getChunk(i);
                 var request = new UploadPartRequest(config, i, uploadId, chunk);
 
-                System.out.println("Adding task for chunk " + i);
                 tasks.add(request.execute());
-                System.out.println("Adding task for chunk " + i + " completed");
 
                 while(tasks.size() >= config.getParallelUploads()) {
                     //todo this probably won't handle errors
