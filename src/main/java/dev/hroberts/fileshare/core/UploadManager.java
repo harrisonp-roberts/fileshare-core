@@ -1,6 +1,8 @@
 package dev.hroberts.fileshare.core;
 
+import dev.hroberts.fileshare.core.config.FileshareConfig;
 import dev.hroberts.fileshare.core.dtos.NoContentResponseDto;
+import dev.hroberts.fileshare.core.models.UploadOptions;
 import dev.hroberts.fileshare.core.models.UploadableFile;
 import dev.hroberts.fileshare.core.requests.CompleteUploadRequest;
 import dev.hroberts.fileshare.core.requests.InititiateUploadRequest;
@@ -9,6 +11,7 @@ import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadExc
 import org.tinylog.Logger;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,37 +25,38 @@ class UploadManager {
         this.config = config;
     }
 
-    UUID doUpload(UploadableFile file) throws FailedToInitiateUploadException {
-        var uploadId = initiateUpload(file);
+    UUID doUpload(Path filePath, UploadOptions options) throws FailedToInitiateUploadException {
+        var file = new UploadableFile(filePath, config.chunkSize);
+        var uploadId = initiateUpload(file, options);
         Logger.info("initiated request with upload ID " + uploadId);
 
-        uploadChunks(uploadId, file);
+        uploadChunks(uploadId, options, file);
         Logger.info("uploaded chunks");
 
-        completeUpload(uploadId);
+        completeUpload(uploadId, options);
         Logger.info("upload completed");
 
         return uploadId;
     }
 
-    private void completeUpload(UUID uploadId) {
+    private void completeUpload(UUID uploadId, UploadOptions options) {
         Logger.info("completing upload");
 
-        var completeUploadRequest = new CompleteUploadRequest(config, uploadId);
+        var completeUploadRequest = new CompleteUploadRequest(config, uploadId, options.enableHashing);
                 completeUploadRequest.execute().join();
     }
 
-    private void uploadChunks(UUID uploadId, UploadableFile file) {
+    private void uploadChunks(UUID uploadId,UploadOptions options, UploadableFile file) {
         try {
             var tasks = new ArrayList<CompletableFuture<NoContentResponseDto>>();
 
             for (int i = 0; i < file.getNumChunks(); i++) {
                 var chunk = file.getChunk(i);
-                var request = new UploadPartRequest(config, i, uploadId, chunk);
+                var request = new UploadPartRequest(config, i, uploadId, chunk, options.enableHashing);
 
                 tasks.add(request.execute());
 
-                while(tasks.size() >= config.getParallelUploads()) {
+                while(tasks.size() >= config.parallelUploads) {
                     //todo this probably won't handle errors
                     tasks.stream().filter(CompletableFuture::isDone).forEach(CompletableFuture::join);
                     tasks.removeIf(CompletableFuture::isDone);
@@ -64,42 +68,11 @@ class UploadManager {
             Logger.error("e");
             throw new RuntimeException(ex);
         }
-
-
-//        var virtualThreadFactory = Thread.ofVirtual().factory();
-//        try (var executor = Executors.newFixedThreadPool(config.getParallelUploads(), virtualThreadFactory)) {
-//            var completionService = new ExecutorCompletionService<NoContentResponseDto>(executor);
-//            int activeTasks = 0;
-//
-//            for (int i = 0; i < file.getNumChunks(); i++) {
-//                Logger.info("creating upload chunk request " + i);
-//                var chunk = file.getChunk(i);
-//                var request = new UploadPartRequest(config, i, uploadId, chunk);
-//
-//                if (activeTasks == config.getParallelUploads()) {
-//                    Logger.info("removing completed upload chunk request from threadpool");
-//                    completionService.take();
-//                    activeTasks--;
-//                }
-//
-//                Logger.info("pooling upload chunk request " + i);
-//                completionService.submit(() -> request.execute(executor).join(), null);
-//                activeTasks++;
-//            }
-//
-//            while (activeTasks > 0) {
-//                Logger.info("removing completed upload chunk request from threadpool");
-//                completionService.take();
-//                activeTasks--;
-//            }
-//        } catch (IOException | InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
-    private UUID initiateUpload(UploadableFile file) throws FailedToInitiateUploadException {
+    private UUID initiateUpload(UploadableFile file, UploadOptions options) throws FailedToInitiateUploadException {
         Logger.info("initiating upload");
-        var request = new InititiateUploadRequest(config, file);
+        var request = new InititiateUploadRequest(config, options, file);
 
         try {
             var responseDto = request.execute().get();

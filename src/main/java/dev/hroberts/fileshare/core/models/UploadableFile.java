@@ -12,12 +12,11 @@ public class UploadableFile {
     private int chunkSize;
     private int numChunks;
 
-    public UploadableFile(Path filePath) {
-        chunkSize = 1024 * 1024 * 10;
+    public UploadableFile(Path filePath, int chunkSize) {
         this.filePath = filePath;
         this.fileName = filePath.getFileName().toString();
         this.size = filePath.toFile().length();
-
+        this.chunkSize = chunkSize;
         this.numChunks = (int) Math.ceilDiv(size, chunkSize);
     }
 

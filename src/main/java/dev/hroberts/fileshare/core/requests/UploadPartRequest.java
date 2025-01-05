@@ -1,11 +1,8 @@
 package dev.hroberts.fileshare.core.requests;
 
-import dev.hroberts.fileshare.core.FileshareConfig;
+import dev.hroberts.fileshare.core.config.FileshareConfig;
 import dev.hroberts.fileshare.core.dtos.NoContentResponseDto;
-import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.core5.http.ContentType;
@@ -17,12 +14,14 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
     private final UUID uploadId;
     private final byte[] payload;
     private final int position;
+    private final boolean enableHashing;
 
-    public UploadPartRequest(FileshareConfig config, int position, UUID uploadId, byte[] payload) {
+    public UploadPartRequest(FileshareConfig config, int position, UUID uploadId, byte[] payload, boolean enableHashing) {
         super(config);
         this.uploadId = uploadId;
         this.payload = payload;
         this.position = position;
+        this.enableHashing = enableHashing;
     }
 
     @Override
@@ -46,6 +45,16 @@ public class UploadPartRequest extends BaseRequest<NoContentResponseDto> {
         builder.addTextBody("chunkIndex", String.valueOf(position));
         builder.addTextBody("size", String.valueOf(payload.length));
         builder.addBinaryBody("file", payload, ContentType.APPLICATION_OCTET_STREAM, "file.part");
+        if(enableHashing) {
+            builder.addTextBody("hash", getHash(payload));
+            builder.addTextBody("hashAlgorithm", "CRC_32");
+        }
         request.setEntity(builder.build());
+    }
+    
+    private String getHash(byte[] payload) {
+        var crc32 = new java.util.zip.CRC32();
+        crc32.update(payload);
+        return Long.toHexString(crc32.getValue());
     }
 }

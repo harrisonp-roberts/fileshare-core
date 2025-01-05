@@ -1,7 +1,7 @@
 package dev.hroberts.fileshare.core.requests;
 
 import com.google.gson.Gson;
-import dev.hroberts.fileshare.core.FileshareConfig;
+import dev.hroberts.fileshare.core.config.FileshareConfig;
 import dev.hroberts.fileshare.core.requests.exceptions.FailedToInitiateUploadException;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -12,8 +12,6 @@ import org.tinylog.Logger;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public abstract class BaseRequest<T> {
     protected Gson gson = new Gson();
@@ -24,7 +22,7 @@ public abstract class BaseRequest<T> {
 
     public BaseRequest(FileshareConfig config) {
         this.config = config;
-        this.URL = config.getBaseUri();
+        this.URL = config.baseUri;
     }
 
     /**
